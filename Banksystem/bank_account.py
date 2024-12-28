@@ -10,10 +10,10 @@ def main_menu():
 
     while True:
         try:
-            choose = int(input("Please choose what you want to do: \n1. Create Account\n2. Login\n3. Exit\n"))
-            if choose not in [1, 2, 3]:
+            choice = int(input("Please choose what you want to do: \n1. Create Account\n2. Login\n3. Exit\n"))
+            if choice not in [1, 2, 3]:
                 raise ValueError
-            return choose
+            return choice
         except ValueError:
             print("Please enter a valid option\n")
 
@@ -87,7 +87,7 @@ def login():
             pin = int(pin)
     
             if any(account[0] == account_number and account[1] == pin for account in accounts):
-                return True
+                return account_number
             else:
                 print("Invalid PIN. Please try again.")
                 continue
@@ -95,14 +95,107 @@ def login():
         except ValueError:
             print("Please enter a valid PIN")
             continue
-        
+            
+def account_menu(account_number):
 
+    while True:
+        try:
+            choice = int(input("\nPlease choose what you want to do: \n1. Check Balance\n2. Deposit\n3. Withdraw\n4. Logout\n5. Close Account\n"))
+            if choice not in [1, 2, 3, 4, 5]:
+                raise ValueError
+            if choice == 1:
+                check_balance(account_number)
+            elif choice == 2:
+                deposit(account_number)
+            elif choice == 3:
+                withdraw(account_number)
+            elif choice == 4:
+                print("Logged out successfully!")
+                process()
+            elif choice == 5:
+                close_account(account_number)
+                print("Account closed successfully!")
+                process()
+        except ValueError:
+            print("Please enter a valid option")
+
+def check_balance(account_number):
+    accounts = load_accounts()
+    for account in accounts:
+        if account[0] == account_number:
+            print(f"\nYour balance is: {account[2]:.2f}")
+            break
+
+def deposit(account_number):
+    accounts = load_accounts()
+    amount = float(input("Enter the amount you want to deposit: "))
+
+    updated_accounts = []
+
+    for account in accounts:
+        if account[0] == account_number:
+            new_balance = account[2] + amount
+            updated_accounts.append([account[0], account[1], new_balance])
+            print(f"\nDeposited {amount:.2f} successfully!")
+        else:
+            updated_accounts.append(account)
+
+    with open(file_path, "w", newline='') as file:
+        writer = csv.writer(file, delimiter=";")
+        writer.writerow(["account_number", "pin", "balance"])
+        writer.writerows(updated_accounts)
+
+def withdraw(account_number):
+    accounts = load_accounts()
+    amount = float(input("Enter the amount you want to withdraw: "))
+
+    updated_accounts = []
+
+    for account in accounts:
+        if account[0] == account_number:
+            if account[2] < amount:
+                print("Insufficient funds.")
+            else:
+                new_balance = account[2] - amount
+                updated_accounts.append([account[0], account[1], new_balance])
+                print(f"\nWithdrew {amount:.2f} successfully!")
+
+    with open(file_path, "w", newline='') as file:
+        writer = csv.writer(file, delimiter=";")
+        writer.writerow(["account_number", "pin", "balance"])
+        writer.writerows(updated_accounts)
+
+def close_account(account_number):
+
+    accounts = load_accounts()
+    account_to_close = None
+
+    for account in accounts:
+        if account[0] == account_number:
+            account_to_close = account
+            break
+
+    if not account_to_close:
+        print("Account not found")
+        return
     
-def account_menu():
-    pass
+    try:
+        verify = int(input("To close your account, please enter your PIN: "))
+        if verify == account_to_close[1]:
+            print("Account closed successfully!")
+        else:
+            print("Invalid PIN. Please try again.")
+            return
+        
+    except ValueError:
+        print("Please enter a valid PIN")
 
+    updated_accounts = [account for account in accounts if account[0] != account_number]
 
-
+    with open(file_path, "w", newline='') as file:
+        writer = csv.writer(file, delimiter=";")
+        writer.writerow(["account_number", "pin", "balance"])
+        writer.writerows(updated_accounts)
 
 def process():
     while True:
@@ -110,9 +203,11 @@ def process():
         if choice == 1:
             create_account()
         elif choice == 2:
-            login()
-            print("Login successful!")
-            break
+            account_number = login()
+            if account_number:
+                print("Login successful!")
+                account_menu(account_number)
+                break
         elif choice == 3:
             print("Thank you for using the bank of Python!")
             exit()
